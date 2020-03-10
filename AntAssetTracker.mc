@@ -339,6 +339,10 @@ module AntAssetTracker {
 		function getAssets() {
 			return lst.values();
 		}
+
+		function size() {
+			return lst.size();
+		}
 	}
 
 	/**
@@ -359,5 +363,14 @@ module AntAssetTracker {
         var color = 0;
         var type = 0;
         var name = "";
+
+		function debugDescription() {
+			return "Dog:" + "\n" +
+				"\tname: " + name + "\n" +
+				"\tdistance: " + distance + "\n" +
+				"\tsituation: " + situation + "\n" +
+				"\tlatitude: " + latitude + "\n" +
+				"\tlongitude: " + longitude;
+		}
     }
 }
