@@ -365,12 +365,13 @@ module AntAssetTracker {
         var name = "";
 
 		function debugDescription() {
-			return "Dog:" + "\n" +
-				"\tname: " + name + "\n" +
-				"\tdistance: " + distance + "\n" +
-				"\tsituation: " + situation + "\n" +
-				"\tlatitude: " + latitude + "\n" +
-				"\tlongitude: " + longitude;
+			return "Dog:" +
+				"\n\t- name: " + name +
+				"\n\t- distance: " + distance +
+				"\n\t- situation: " + situation +
+				"\n\t- latitude: " + latitude +
+				"\n\t- longitude: " + longitude +
+				"\n\t- bearingDeg: " + bearingDeg;
 		}
     }
 }
