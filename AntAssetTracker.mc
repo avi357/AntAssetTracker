@@ -371,7 +371,12 @@ module AntAssetTracker {
 				"\n\t- situation: " + situation +
 				"\n\t- latitude: " + latitude +
 				"\n\t- longitude: " + longitude +
-				"\n\t- bearingDeg: " + bearingDeg;
+				"\n\t- bearingDeg: " + bearingDeg +
+				"\n\t- isGPSLost: " + isGPSLost +
+				"\n\t- isCommLost: " + isCommLost +
+				"\n\t- isLowBattery: " + isLowBattery +
+				"\n\t- shouldRemove: " + shouldRemove +
+				"\n\t- color: " + color;
 		}
     }
 }
