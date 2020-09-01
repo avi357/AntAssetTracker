@@ -29,9 +29,7 @@ using Toybox.Ant;
 using Toybox.Math;
 using Toybox.StringUtil;
 
-/**
- * AntAssetTracker module
- */
+/// `AntAssetTracker` module
 (:AntAssetTracker)
 module AntAssetTracker {
 	const STATUS_SITTING = 0;
@@ -49,13 +47,13 @@ module AntAssetTracker {
 	const PAGE_NO_ASSETS = 0x03;
 	const PAGE_REQUEST_DATA = 0x46;
 
-	/**
-	 * TrackerSensor class
-	 */
+	/// `TrackerSensor` class
 	class TrackerSensor extends Ant.GenericChannel {
-	    const DEVICE_TYPE = 41; // type: asset tracker
+		// type: asset tracker
+	    const DEVICE_TYPE = 41;
 	    const PERIOD = 2048;
-	    const DEVICE_RF = 57; // frequency
+		// frequency
+	    const DEVICE_RF = 66;
 
 	    hidden var chanAssign;
 
@@ -76,15 +74,20 @@ module AntAssetTracker {
 
 	        // Set the configuration
 	        deviceCfg = new Ant.DeviceConfig({
-	            :deviceNumber => 0, // wildcard search
+				// wildcard search
+	            :deviceNumber => 0,
 	            :deviceType => DEVICE_TYPE,
-	            :transmissionType => 0, // pairing search
+				// pairing search
+	            :transmissionType => 0,
 	            :messagePeriod => PERIOD,
 	            :radioFrequency => DEVICE_RF,
-	            :searchTimeoutLowPriority => 3, // 3*2.5s = 7.5 seconds
+				// 3*2.5s = 7.5 seconds
+	            :searchTimeoutLowPriority => 3,
+				// Pair to all transmitting sensors after search is done.
 	            :searchThreshold => 0
 			});
 	        GenericChannel.setDeviceConfig(deviceCfg);
+			GenericChannel.disableEncryption();
 
 			assets = new AssetList();
 	        searching = true;
@@ -123,7 +126,7 @@ module AntAssetTracker {
 	        var payload = msg.getPayload();
 
 	        if (Ant.MSG_ID_BROADCAST_DATA == msg.messageId) {
-	        	var pageNumber = getPageNro(payload);
+	        	var pageNumber = getPageNumber(payload);
 
 	        	// In search state, now we found something
 	            if (searching) {
@@ -141,7 +144,7 @@ module AntAssetTracker {
 	            } else if (pageNumber == PAGE_LOCATION_FIRST && subseqFirstPages > 0) {
 	            	// first location page, some first pages already received
 	            	subseqFirstPages++; // check if the asset id's match?
-	            	if(subseqFirstPages > 3) {
+	            	if (subseqFirstPages > 3) {
         				// handle asset disconnect after 4 first pages
         				assets.removeAsset(parseAssetIdx(payload));
         				System.println("TRACKER DISCONNECT!");
@@ -150,7 +153,7 @@ module AntAssetTracker {
 	            	// second location page, and there's a previous payload saved
 	            	subseqFirstPages = 0;
 	            	var index = parseAssetIdx(payload);
-	            	if (getPageNro(prevPayload) == PAGE_LOCATION_FIRST && index == parseAssetIdx(prevPayload)) {
+	            	if (getPageNumber(prevPayload) == PAGE_LOCATION_FIRST && index == parseAssetIdx(prevPayload)) {
 	            		// we have both pages and they refer to same asset id (= can parse)
 
 	            		var data = assets.getIndex(index);
@@ -172,7 +175,7 @@ module AntAssetTracker {
             	} else if (pageNumber == PAGE_IDENTIFICATION_SECOND && prevPayload != null) {
 	            	subseqFirstPages = 0;
 	            	var index = parseAssetIdx(payload);
-	            	if(getPageNro(prevPayload) == PAGE_IDENTIFICATION_FIRST && index == parseAssetIdx(prevPayload)) {
+	            	if(getPageNumber(prevPayload) == PAGE_IDENTIFICATION_FIRST && index == parseAssetIdx(prevPayload)) {
 	            		// we have both pages and they refer to same asset id (= can parse)
 
 	            		var data = assets.getIndex(index);
@@ -198,12 +201,12 @@ module AntAssetTracker {
 	            // @todo need to add handlers for pages 80, 81, 82
 	            prevPayload = payload;
 
-	        } else if(Ant.MSG_ID_CHANNEL_RESPONSE_EVENT == msg.messageId) {
+	        } else if (Ant.MSG_ID_CHANNEL_RESPONSE_EVENT == msg.messageId) {
 	            if (Ant.MSG_ID_RF_EVENT == (payload[0] & 0xFF)) {
 	                if (Ant.MSG_CODE_EVENT_CHANNEL_CLOSED == (payload[1] & 0xFF)) {
 	                    // Channel closed, re-open
 	                    open();
-	                } else if( Ant.MSG_CODE_EVENT_RX_FAIL_GO_TO_SEARCH  == (payload[1] & 0xFF) ) {
+	                } else if (Ant.MSG_CODE_EVENT_RX_FAIL_GO_TO_SEARCH  == (payload[1] & 0xFF)) {
 	                    searching = true;
 	                }
 	            } else {
@@ -212,12 +215,14 @@ module AntAssetTracker {
 	        }
 	    }
 
-	    private function getPageNro (pload) {
-	    	return (pload[0].toNumber() & 0xFF);
+	    private function getPageNumber(payload) {
+	    	return (payload[0].toNumber() & 0xFF);
 	    }
-	    private function parseAssetIdx (pload) {
-	    	return pload[1] & 0x1F;
+
+	    private function parseAssetIdx(payload) {
+	    	return payload[1] & 0x1F;
 	    }
+
 	    private function parseDistance(payload) {
         	return ((payload[2]) | (payload[3] << 8));
         }
@@ -227,37 +232,43 @@ module AntAssetTracker {
         	return (1.0 * bearingBrad / 256) * 360;
         }
 
-        private function convertSemicircleToDeg(semicircle) {
-        	return (1.0 * semicircle / Math.pow(2,31)) * 180;
-        }
         private function parseLatitude(payloadFirst, payloadSecond) {
         	var latSemicircle;
         	latSemicircle = (payloadFirst[6] | (payloadFirst[7] << 8) | (payloadSecond[2] << 16) | (payloadSecond[3] << 24));
         	return convertSemicircleToDeg(latSemicircle);
         }
-        private function parseLongitude(payload) {
+
+		private function parseLongitude(payload) {
         	var lonSemicircle;
         	lonSemicircle = (payload[4] | (payload[5] << 8) | (payload[6] << 16) | (payload[7] << 24));
         	return convertSemicircleToDeg(lonSemicircle);
+        }
+
+		private function convertSemicircleToDeg(semicircle) {
+        	return (1.0 * semicircle / Math.pow(2,31)) * 180;
         }
 
         private function parseSituation(payload) {
         	var s = payload[5];
         	return s & 0x7;
         }
-        private function parseLowBattery(payload) {
+
+		private function parseLowBattery(payload) {
         	var s = payload[5];
         	return true && ((s >> 3) & 0x1); // cast to boolean
         }
-        private function parseGPSLost(payload) {
+
+		private function parseGPSLost(payload) {
         	var s = payload[5];
         	return true && ((s >> 4) & 0x1);
         }
-        private function parseCommLost(payload) {
+
+		private function parseCommLost(payload) {
         	var s = payload[5];
         	return true && ((s >> 5) & 0x1);
         }
-        private function parseShouldRemove(payload) {
+
+		private function parseShouldRemove(payload) {
         	var s = payload[5];
         	return true && ((s >> 6) & 0x1);
         }
@@ -285,7 +296,6 @@ module AntAssetTracker {
         }
 
         private function parseName(payloadFirst, payloadSecond) {
-
 			var nameArr = new [10];
         	for(var i=3; i<8; i++) {
         		nameArr[i-3] = payloadFirst[i];
